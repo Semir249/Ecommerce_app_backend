@@ -4,7 +4,7 @@ const bodyParser=require('body-parser');
 const fs=require('fs');
 const path=require('path');
 const multer=require('multer');
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 const authRoutes=require('./routes/auth/authRoutes');
 const shopRoutes=require('./routes/shop/product');
 const cartRoutes=require('./routes/shop/cart');
