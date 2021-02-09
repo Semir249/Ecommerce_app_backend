@@ -66,11 +66,10 @@ exports.addProduct = async (req, res, next) => {
                                    throw err
                                } else {
                                    console.log("Successfully moved the file!");
-                   
+                                    deleteImageFiles();
                                }
                            });
                        }
-                       deleteImageFiles();
                        res.status(201).json({message:'Products added successfully'});
                     }
                     )
@@ -118,14 +117,16 @@ exports.getProduct=(req,res,next)=>{
             }
         }));
         return {
-            _id:product._id,
-            images:product.images,
-            name:product.name,
-            category:product.category,
-            price:product.price,
-            quantity:product.quantity,
+            // _id:product._id,
+            // images:product.images,
+            // name:product.name,
+            // category:product.category,
+            // price:product.price,
+            // quantity:product.quantity
+            ... product._doc,
             reviews:editedReview,
-            ratings:product.ratings
+            // ratings:product.ratings,
+            // description:product.description
         }
         
     })
@@ -191,9 +192,13 @@ exports.editProduct=async (req,res,next)=>{
     const quantity = req.body.quantity;
     const category = req.body.category;
     const price = req.body.price;
-    const images = await photos.map(element => {
+    const description=req.body.description;
+    var images;
+    if(photos.length > 0){
+     images = await photos.map(element => {
         return `images/${id}/${element.filename}`;
     });
+    }
     User.findOne({username:req.user.username}).then(
         (user)=>{
             if(!user){
@@ -201,16 +206,22 @@ exports.editProduct=async (req,res,next)=>{
             }
             
             if(user.role === 'ROLE_ADMIN'){
+                if(photos.length>0){
                 deleteImageFiles(id);
+                }
                 Product.findById(id).then(product=>{
+                    if(photos.length>0){
                     product.images=images;
+                    }
                     product.name=name;
                     product.quantity=quantity;
                     product.category=category;
                     product.price=price;
+                    product.description=description;
                     return product.save();
                 })
                 .then(product=>{
+                    if(photos.length>0){
                     for (i in photos) {
                         let currentDestination = photos[i].path;
                         let newDestination = `${photos[i].destination}/${product.id}/${photos[i].filename}`
@@ -223,6 +234,7 @@ exports.editProduct=async (req,res,next)=>{
                             }
                         });
                     }
+                }
                     res.status(203).json({response:product,message:'Product updated successfully'});
                 })
                 .catch(err=>{
@@ -396,19 +408,31 @@ exports.getProductReviews=(req,res,next)=>{
 
 exports.getMyReviews=async (req,res,next)=>{
     const userId=await (await User.findOne({username:req.user.username}))._id;
-
+    let reviews=[];
     Product.find().then(async(products)=>{
         if(!products){
             const error=new Error('No product found');
             error.statusCode=404;
             res.status(404).json({message:'No product found'});
         }
-        const reviews=await products.map(product=>product.reviews).flat();
-        return reviews;
+
+        // const reviews=await products.map(product=>{
+        //     console.log(product.reviews);
+        //     return {...product.reviews._doc,_id:product._id,name:product.name,images:product.images[0]};
+        // }).flat();
+        for(let product of products){
+            await reviews.push(product.reviews.map(review=>{
+                
+                return {...review._doc,prodId:product._id,name:product.name,image:product.images[0],edit:false}
+                
+            }));
+        }
+        return reviews.flat();
     })
     .then(async(reviews)=>{
+        
         const myReviews=await reviews.filter(review=>{return review.user.toString()===userId.toString()});
-        res.status(200).json({reviews:myReviews.length>0?myReviews:"You haven't made any reviews"});
+        res.status(200).json({reviews:myReviews.length>0?myReviews:false});
     })
     .catch(err=>{
         if(!err.statusCode){
@@ -447,7 +471,9 @@ exports.deleteReview=async(req,res,next)=>{
             if(product.reviews.length==1){
                 product.ratings=undefined;
             }
+            else{
             product.ratings=((product.ratings*product.reviews.length)-product.reviews[productIndex].stars)/(product.reviews.length-1);
+            }
             product.reviews.splice(productIndex,1);
             product.save();
             res.status(203).json({message:`You review for ${product.name} has been deleted`});

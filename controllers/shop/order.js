@@ -33,7 +33,6 @@ exports.postOrder=(req,res,next)=>{
                 
                 return {
                     productId:i.productId._id,
-                    image:i.productId.images[0],
                     name:i.productId.name,
                     price:i.productId.price,
                     quantity:i.quantity
@@ -84,6 +83,9 @@ exports.getOrder=async (req,res,next)=>{
             res.status(404).json({message:'No order found for user'});
             throw error;
         }
+        return order;
+        
+    }).then(order=>{
         res.status(200).json({orders:order})
     })
     .catch(err=>{

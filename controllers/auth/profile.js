@@ -4,7 +4,6 @@ const crypto=require('crypto');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const sendGridTransport = require('nodemailer-sendgrid-transport');
-const { EROFS } = require("constants");
 const transporter=nodemailer.createTransport(sendGridTransport({
     auth:
     {
@@ -94,7 +93,7 @@ exports.postResetPassword=(req,res,next)=>{
                 subject: 'Reset password',
                 html: `
                 <p>you requested a password reset</p>
-                <p>click this <a href="http://localhost:3000/reset/${token}">link</a> to set a new password</p>
+                <p>click this <a href="http://localhost:4200/reset/${token}">link</a> to set a new password</p>
                 `
             })
             res.status(201).json({message:`An email has been sent to ${req.body.email} click the link on the mail to reset password`});
