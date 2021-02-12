@@ -3,6 +3,7 @@ const router=express.Router();
 const productController=require('../../controllers/shop/products');
 const verify=require('../../middlewares/verify');
 
+router.get('/product/search',productController.getSearch);
 
 router.get('/product/:id',productController.getProduct);
 router.post('/product',verify,productController.addProduct);
